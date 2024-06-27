@@ -1,39 +1,40 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
-[RequireComponent(typeof(Rigidbody)),
- RequireComponent(typeof(Renderer))]
+[RequireComponent(typeof(Rigidbody), typeof(Renderer))]
 public class Cube : MonoBehaviour
 {
-    private static readonly int s_platformLayer = 3;
+    [SerializeField] private LayerMask _platformLayerMask;
     
-    private Rigidbody _rigidbody;
     private Renderer _renderer;
     private Color _defaultColor;
-    private bool _isCounting;
+    private bool _isCountingLifetiime;
     private float _minLifetime = 2;
     private float _maxLifetime = 5;
 
     public event UnityAction<Cube> LifetimeOver;
+
+    public Rigidbody RigidbodyLink { get; private set; }
         
     private void Awake()
     {
-        _rigidbody = GetComponent<Rigidbody>();
+        RigidbodyLink = GetComponent<Rigidbody>();
         _renderer = GetComponent<Renderer>();
         _defaultColor = _renderer.material.color;
     }
 
     private void OnCollisionEnter(Collision other)
     {
-        if (_isCounting)
+        if (_isCountingLifetiime)
             return;
         
-        if (other.gameObject.layer == s_platformLayer)
+        if ((_platformLayerMask & (1 << other.gameObject.layer)) != 0)
         {
-            var lifeTime = Random.Range(_minLifetime, _maxLifetime);
-            _isCounting = true;
+            float lifeTime = Random.Range(_minLifetime, _maxLifetime);
+            _isCountingLifetiime = true;
             _renderer.material.color = ChooseRandomColor();
-            Invoke(nameof(AnnounceReleasing), lifeTime);
+            StartCoroutine(nameof(AnnouncingReleasing), lifeTime);
         }
     }
 
@@ -41,16 +42,11 @@ public class Cube : MonoBehaviour
     {
         if (isActive == false)
         {
-            _isCounting = false;
+            _isCountingLifetiime = false;
             _renderer.material.color = _defaultColor;
         }
 
         gameObject.SetActive(isActive);
-    }
-
-    public Rigidbody GetRigidbody()
-    {
-        return _rigidbody;
     }
 
     private Color ChooseRandomColor()
@@ -66,8 +62,12 @@ public class Cube : MonoBehaviour
         return color;
     }
 
-    private void AnnounceReleasing()
+    private IEnumerator AnnouncingReleasing(float lifetime)
     {
+        var delay = new WaitForSeconds(lifetime);
+
+        yield return delay;
+
         LifetimeOver?.Invoke(this);
     }
 }

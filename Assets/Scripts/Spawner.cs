@@ -30,14 +30,14 @@ public class Spawner : MonoBehaviour
 
     private void GetCube()
     {
-        var cube = _pool.Get();
+        Cube cube = _pool.Get();
         cube.LifetimeOver += ReleaseCube;
     }
     
     private void Spawn(Cube cube)
     {
         cube.transform.position = ChooseRandomPosition();
-        cube.GetRigidbody().velocity = Vector3.zero;
+        cube.RigidbodyLink.velocity = Vector3.zero;
         cube.SetActive(true);
     }
 
@@ -50,9 +50,9 @@ public class Spawner : MonoBehaviour
 
     private Vector3 ChooseRandomPosition()
     {
-        var position = transform.position;
-        var halfScaleX = transform.localScale.x / 2;
-        var halfScaleZ = transform.localScale.z / 2;
+        Vector3 position = transform.position;
+        float halfScaleX = transform.localScale.x / 2;
+        float halfScaleZ = transform.localScale.z / 2;
 
         position.x = Random.Range(-halfScaleX, halfScaleX);
         position.z = Random.Range(-halfScaleZ, halfScaleZ);
