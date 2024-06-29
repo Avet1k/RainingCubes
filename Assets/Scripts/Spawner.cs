@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Pool;
 
 public abstract class Spawner<T> : MonoBehaviour where T : Item
@@ -8,6 +9,10 @@ public abstract class Spawner<T> : MonoBehaviour where T : Item
     [SerializeField] private int _maxCapacity = 10;
 
     private ObjectPool<T> _pool;
+    private int _createdItemsCounter = 0;
+
+    public event UnityAction<int> ItemCreated;
+    public event UnityAction<int> ChangedActiveItems;
 
     private void Awake()
     {
@@ -25,6 +30,8 @@ public abstract class Spawner<T> : MonoBehaviour where T : Item
     {
         item.RigidbodyLink.velocity = Vector3.zero;
         item.SetActive(true);
+        ItemCreated?.Invoke(++_createdItemsCounter);
+        ChangedActiveItems?.Invoke(_pool.CountActive);
     }
 
     protected void GetItem()
@@ -39,6 +46,7 @@ public abstract class Spawner<T> : MonoBehaviour where T : Item
         {
             typedItem.LifetimeOver -= ReleaseItem;
             _pool.Release(typedItem);
+            ChangedActiveItems?.Invoke(_pool.CountActive);
         }
     }
 }
