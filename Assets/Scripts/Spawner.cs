@@ -1,74 +1,44 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
 
-public class Spawner : MonoBehaviour
+public abstract class Spawner<T> : MonoBehaviour where T : Item
 {
-    [SerializeField] private Cube _cube;
-    [SerializeField] private float _repeatRate = 0.1f;
+    [SerializeField] private T _item;
     [SerializeField] private int _poolCapacity = 10;
     [SerializeField] private int _maxCapacity = 10;
 
-    private ObjectPool<Cube> _pool;
+    private ObjectPool<T> _pool;
 
     private void Awake()
     {
-        _pool = new ObjectPool<Cube>(
-            createFunc: () => Instantiate(_cube),
-            actionOnGet: (cube) => Spawn(cube),
-            actionOnRelease: (cube) => cube.SetActive(false),
-            actionOnDestroy: (cube) => Destroy(cube),
+        _pool = new ObjectPool<T>(
+            createFunc: () => Instantiate(_item),
+            actionOnGet: (item) => Spawn(item),
+            actionOnRelease: (item) => item.SetActive(false),
+            actionOnDestroy: (item) => Destroy(item),
             collectionCheck: true,
             defaultCapacity: _poolCapacity,
             maxSize: _maxCapacity);
     }
 
-    private void Start()
+    protected virtual void Spawn(T item)
     {
-        StartCoroutine(Spawning());
+        item.RigidbodyLink.velocity = Vector3.zero;
+        item.SetActive(true);
     }
 
-    private void GetCube()
+    protected void GetItem()
     {
-        Cube cube = _pool.Get();
-        cube.LifetimeOver += ReleaseCube;
+        T item = _pool.Get();
+        item.LifetimeOver += ReleaseItem;
     }
     
-    private void Spawn(Cube cube)
+    protected virtual void ReleaseItem(Item item)
     {
-        cube.transform.position = ChooseRandomPosition();
-        cube.RigidbodyLink.velocity = Vector3.zero;
-        cube.SetActive(true);
-    }
-
-    private void ReleaseCube(Cube cube)
-    {
-        cube.LifetimeOver -= ReleaseCube;
-        
-        _pool.Release(cube);
-    }
-
-    private Vector3 ChooseRandomPosition()
-    {
-        Vector3 position = transform.position;
-        float halfScaleX = transform.localScale.x / 2;
-        float halfScaleZ = transform.localScale.z / 2;
-
-        position.x = Random.Range(-halfScaleX, halfScaleX);
-        position.z = Random.Range(-halfScaleZ, halfScaleZ);
-
-        return position;
-    }
-
-    private IEnumerator Spawning()
-    {
-        bool isWorking = true;
-        var delay = new WaitForSeconds(_repeatRate);
-
-        while (isWorking)
+        if (item is T typedItem)
         {
-            GetCube();
-            yield return delay;
+            typedItem.LifetimeOver -= ReleaseItem;
+            _pool.Release(typedItem);
         }
     }
 }
